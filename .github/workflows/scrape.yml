@@ -1,9 +1,9 @@
-name: RHMS satni scraper
+name: RHMZ satni scraper
 
 on:
   schedule:
     - cron: "15 * * * *"   # svaki sat u 15 minuta
-  workflow_dispatch:       # ručno pokretanje
+  workflow_dispatch:
 
 jobs:
   scrape:
@@ -20,15 +20,15 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install beautifulsoup4 requests
+          pip install requests beautifulsoup4
 
       - name: Run scraper
         run: python rhmz_scrape.py
 
       - name: Commit scraped data
         run: |
-          git config --global user.email "action@github.com"
-          git config --global user.name "GitHub Action"
-          git add data/*
-          git commit -m "Update satni podaci" || echo "No changes to commit"
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add data/*.csv
+          git commit -m "Update hourly data" || echo "No changes to commit"
           git push
