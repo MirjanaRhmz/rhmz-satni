@@ -4,59 +4,39 @@ from datetime import datetime
 import csv
 import os
 
-url = "https://www.hidmet.gov.rs/ciril/osmotreni/index.php"
+URLS = [
+    "https://www.hidmet.gov.rs/ciril/osmotreni/index.php",
+    "https://www.hidmet.gov.rs/ciril/automatske/index.php"
+]
 
-response = requests.get(url)
-response.encoding = "utf-8"
+def parse_table(url):
+    response = requests.get(url)
+    response.encoding = "utf-8"
+    soup = BeautifulSoup(response.text, "html.parser")
+    table = soup.find("table")
 
-soup = BeautifulSoup(response.text, "html.parser")
-tables = soup.find_all("table")
-
-if len(tables) < 2:
-    print("Nedostaju tabele! RHMZ možda menja stranicu.")
-    exit()
-
-now = datetime.now().strftime("%d-%m-%y %H:%M")
-now_file = datetime.now().strftime("%Y%m%d_%H%M")
-
-# folder
-folder = "rhmz_osmotreni_arhiva"
-os.makedirs(folder, exist_ok=True)
-
-csv_name = f"rhmz_sve_stanice_{now_file}.csv"
-csv_path = os.path.join(folder, csv_name)
-
-def extract_table(table, writer):
     rows = table.find_all("tr")
-
-    # header
     header = [th.get_text(strip=True) for th in rows[0].find_all("th")]
-    header.append("datetime_download")
-    writer.writerow(header)
 
-    # data rows
-    for row in rows[1:]:
-        cols = [td.get_text(strip=True) for td in row.find_all("td")]
-
-        # preskoči prazne i kraće od 3 kolone
-        if len(cols) < 3:
+    data = []
+    for r in rows[1:]:
+        cols = [c.get_text(strip=True) for c in r.find_all("td")]
+        if len(cols) < 2:
             continue
+        data.append(cols)
+    return header, data
 
-        # preskoči fusnote (npr. "(1) Podaci ažurirani…")
-        if cols[0].startswith("("):
-            continue
+now = datetime.now().strftime("%Y-%m-%d_%H%M")
+filename = f"data/rhmz_{now}.csv"
 
-        cols.append(now)
-        writer.writerow(cols)
+os.makedirs("data", exist_ok=True)
 
-
-with open(csv_path, "w", newline="", encoding="utf-8-sig") as f:
+with open(filename, "w", encoding="utf-8-sig", newline="") as f:
     writer = csv.writer(f)
 
-    # 1. glavna mreža
-    extract_table(tables[0], writer)
-
-    # 2. automatske stanice (dopunska mreža)
-    extract_table(tables[1], writer)
-
-print("Sačuvano:", csv_path)
+    for url in URLS:
+        header, data = parse_table(url)
+        writer.writerow([f"Source: {url}"])
+        writer.writerow(header)
+        writer.writerows(data)
+        writer.writerow([])
