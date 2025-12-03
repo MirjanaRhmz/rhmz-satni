@@ -2,15 +2,15 @@ name: RHMS satni scraper
 
 on:
   schedule:
-    - cron: "15 * * * *"   # svaki sat u 15 minuta
-  workflow_dispatch:       # ručno pokretanje
+    - cron: '15 * * * *'     # svaki sat u 15 minuta
+  workflow_dispatch:          # ručno pokretanje
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v3
 
       - name: Set up Python
@@ -23,13 +23,14 @@ jobs:
           pip install requests beautifulsoup4
 
       - name: Run scraper
-        run: python rhmz_scrape.py
+        run: |
+          python rhmz_scrape.py
 
-      - name: Commit & push output
+      - name: Commit data
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
 
-          git add .
-          git commit -m "Auto update RHMS satni podaci" || echo "No changes to commit"
+          git add data/*
+          git commit -m "Update satni podaci" || echo "No changes"
           git push
